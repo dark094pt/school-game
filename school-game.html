@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo da Energia Escolar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 0 10px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+    }
+    #energy {
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    button {
+      margin: 5px 3px;
+      padding: 8px 12px;
+      font-size: 0.9em;
+      cursor: pointer;
+    }
+    #event-log {
+      max-height: 200px;
+      overflow-y: auto;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      list-style-type: none;
+    }
+    #event-log li {
+      margin-bottom: 5px;
+    }
+    .game-over {
+      color: red;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .game-won {
+      color: green;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+    }
+    #buttons-container {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Jogo da Energia Escolar</h1>
+  <h2 id="level-name">Nível 1: A começar</h2>
+  <p>Pontos de Energia: <span id="energy">100</span></p>
+  <div id="buttons-container">
+    <button data-event="missClass">Faltar à aula (-10)</button>
+    <button data-event="failModule">Falhar módulo (-15)</button>
+    <button data-event="lateModule">Módulo atrasado (-5)</button>
+    <button data-event="lateClass">Atraso na aula (-5)</button>
+    <button data-event="disciplinaryIssue">Problema disciplinar (-20)</button>
+    <button data-event="warning">Aviso (-10)</button>
+    <button data-event="expulsion">Expulsão (-50)</button>
+  </div>
+  <div style="text-align:center;">
+    <button id="next-level" disabled>Próximo Nível</button>
+  </div>
+  <div id="status-message"></div>
+  <h3>Registo de Eventos</h3>
+  <ul id="event-log"></ul>
+  <div style="text-align:center; margin-top: 15px;">
+    <button id="restart-game" style="display:none;">Reiniciar Jogo</button>
+  </div>
+
+  <script>
+    const levels = [
+      'Nível 1: A começar',
+      'Nível 2: Continua a avançar',
+      'Nível 3: A meio caminho',
+      'Nível 4: Quase a terminar',
+      'Chefe Final: O Desafio'
+    ];
+
+    const eventEnergyLoss = {
+      missClass: 10,
+      failModule: 15,
+      lateModule: 5,
+      lateClass: 5,
+      disciplinaryIssue: 20,
+      warning: 10,
+      expulsion: 50,
+    };
+
+    const eventNameMap = {
+      missClass: 'Faltou à aula',
+      failModule: 'Falhou módulo',
+      lateModule: 'Módulo atrasado',
+      lateClass: 'Atraso na aula',
+      disciplinaryIssue: 'Problema disciplinar',
+      warning: 'Aviso',
+      expulsion: 'Expulsão',
+    };
+
+    let energy = 100;
+    let currentLevel = 0;
+    let gameOver = false;
+    let gameWon = false;
+
+    const energyEl = document.getElementById('energy');
+    const levelNameEl = document.getElementById('level-name');
+    const eventLogEl = document.getElementById('event-log');
+    const nextLevelBtn = document.getElementById('next-level');
+    const restartGameBtn = document.getElementById('restart-game');
+    const statusMessageEl = document.getElementById('status-message');
+    const buttonsContainer = document.getElementById('buttons-container');
+
+    function updateUI() {
+      energyEl.textContent = energy;
+      levelNameEl.textContent = levels[currentLevel];
+      nextLevelBtn.disabled = energy <= 0 || gameOver || gameWon;
+      restartGameBtn.style.display = (gameOver || gameWon) ? 'inline-block' : 'none';
+      buttonsContainer.querySelectorAll('button').forEach(btn => {
+        btn.disabled = gameOver || gameWon;
+      });
+      if (gameOver) {
+        statusMessageEl.textContent = 'Fim de Jogo! Tente novamente.';
+        statusMessageEl.className = 'game-over';
+      } else if (gameWon) {
+        statusMessageEl.textContent = 'Ganhou o jogo! 🎉';
+        statusMessageEl.className = 'game-won';
+      } else {
+        statusMessageEl.textContent = '';
+        statusMessageEl.className = '';
+      }
+    }
+
+    function logEvent(message) {
+      const li = document.createElement('li');
+      li.textContent = message;
+      eventLogEl.insertBefore(li, eventLogEl.firstChild);
+    }
+
+    function handleEvent(event) {
+      if (gameOver || gameWon) return;
+      const loss = eventEnergyLoss[event];
+      energy -= loss;
+      logEvent(`Evento: ${eventNameMap[event]} - Energia perdida: ${loss}`);
+      if (energy <= 0) {
+        energy = 0;
+        gameOver = true;
+        logEvent('Fim de Jogo! Perdeu toda a energia.');
+      }
+      updateUI();
+    }
+
+    function nextLevel() {
+      if (currentLevel < levels.length - 1) {
+        currentLevel++;
+        logEvent(`Avançou para ${levels[currentLevel]}`);
+        updateUI();
+      } else {
+        gameWon = true;
+        logEvent('Parabéns! Derrotou o chefe final!');
+        updateUI();
+      }
+    }
+
+    function restartGame() {
+      energy = 100;
+      currentLevel = 0;
+      gameOver = false;
+      gameWon = false;
+      eventLogEl.innerHTML = '';
+      updateUI();
+    }
+
+    buttonsContainer.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') {
+        const event = e.target.getAttribute('data-event');
+        if (event) {
+          handleEvent(event);
+        }
+      }
+    });
+
+    nextLevelBtn.addEventListener('click', nextLevel);
+    restartGameBtn.addEventListener('click', restartGame);
+
+    updateUI();
+  </script>
+</body>
+</html>
